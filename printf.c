@@ -59,7 +59,7 @@ int _printf(const char *format, ...)
                         }
                         else
                         {
-                                handle_format(format[i + 1], &args, &len);
+                                handle_format(format[i + 1], args, &len);
                                 i++;
                         }
                 }
