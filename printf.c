@@ -1,76 +1,56 @@
-#include "main.h"
+#include "_primary.h"
 #include <stdarg.h>
-#include <unistd.h>
 
-/* Definition of the type_t structure array */
-static type_t types[] = {
-        { 'c', print_char },
-        { 's', print_string },
-        { 'd', print_int },
-        { 'i', print_int },
-        { 'u', print_unsigned },
-        { 'o', print_octal },
-        { 'x', print_hex },
-        { 'X', print_hex_upper },
-        { 'p', print_pointer },
-        { '\0', NULL }
-};
+void output_to_buffer(char buffer[], int *buffer_index);
 
-static void handle_format(char format_char, va_list args, int *len)
+int custom_printf(const char *format, ...)
 {
-        int j;
+int i, output = 0, output_chars = 0;
+int flags, width, precision, length, buffer_index = 0;
+va_list args;
+char buffer[BUFFER_CAPACITY];
 
-        for (j = 0; types[j].specifier != '\0'; ++j)
-        {
-                if (format_char == types[j].specifier)
-                {
-                        types[j].printer(args);
-                        if (format_char != 'l')
-                        {
-                                (*len)++;
-                        }
-                        break;
-                }
-        }
+if (format == NULL)
+	return (-1);
 
-        if (types[j].specifier == '\0')
-        {
-                write(1, &format_char, 1);
-                (*len)++;
-        }
+va_start(args, format);
+
+for (i = 0; format && format[i] != '\0'; i++)
+{
+if (format[i] != '%')
+{
+	buffer[buffer_index++] = format[i];
+if (buffer_index == BUFFER_CAPACITY)
+	output_to_buffer(buffer, &buffer_index);
+	output_chars++;
+}
+else
+{
+output_to_buffer(buffer, &buffer_index);
+flags = extract_flags(format, &i);
+width = extract_width(format, &i, args);
+precision = extract_precision(format, &i, args);
+length = extract_length(format, &i);
+++i;
+output = manage_print(format, &i, args, buffer,
+flags, width, precision, length);
+if (output == -1)
+	return (-1);
+output_chars += output;
+}
 }
 
-int _printf(const char *format, ...)
+output_to_buffer(buffer, &buffer_index);
+
+va_end(args);
+
+	return (output_chars);
+}
+
+void output_to_buffer(char buffer[], int *buffer_index)
 {
-        va_list args;
-        int i, len = 0;
+if (*buffer_index > 0)
+	write(1, &buffer[0], *buffer_index);
 
-        va_start(args, format);
-
-        for (i = 0; format[i] != '\0'; ++i)
-        {
-                if (format[i] == '%')
-                {
-                        if (format[i + 1] == '%')
-                        {
-                                write(1, &format[i], 1);
-                                len++;
-                                i++;
-                        }
-                        else
-                        {
-                                handle_format(format[i + 1], args, &len);
-                                i++;
-                        }
-                }
-                else
-                {
-                        write(1, &format[i], 1);
-                        len++;
-                }
-        }
-
-        va_end(args);
-
-        return (len);
+*buffer_index = 0;
 }
